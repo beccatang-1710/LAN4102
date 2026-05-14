@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weird Jobs Matching Game</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --correct: #27ae60;
+            --wrong: #c0392b;
+            --bg: #f0f3f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); margin-bottom: 10px; }
+        p.instr { margin-bottom: 30px; color: #666; font-style: italic; }
+
+        .game-container {
+            display: flex;
+            gap: 50px;
+            max-width: 1000px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            min-height: 60px;
+        }
+
+        .profession-item { font-weight: bold; font-size: 1.1rem; }
+        .description-item { font-size: 0.95rem; line-height: 1.4; color: #444; }
+
+        .icon { font-size: 2rem; margin-right: 15px; }
+
+        .selected { border-color: var(--accent); background-color: #fff9f0; }
+        .matched { 
+            visibility: hidden; 
+            opacity: 0; 
+            pointer-events: none;
+            transition: visibility 0s 0.5s, opacity 0.5s linear;
+        }
+
+        #message {
+            margin-top: 30px;
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: var(--correct);
+            display: none;
+        }
+
+        .btn-restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .game-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Weird Jobs: Match Them Up!</h1>
+    <p class="instr">Click a Profession, then click its matching Description.</p>
+
+    <div class="game-container">
+        <div class="column" id="professions-col"></div>
+        <div class="column" id="descriptions-col"></div>
+    </div>
+
+    <div id="message">🎉 Well Done! All matched!</div>
+    <button class="btn-restart" id="restart-btn" onclick="initGame()">Play Again</button>
+
+    <script>
+        const jobs = [
+            { id: 1, name: "Pet Psychologist", icon: "🐕🧠", desc: "Studies animal behavior to help owners understand anxiety or aggression in pets." },
+            { id: 2, name: "Professional Queuer", icon: "🧍‍♂️🛑", desc: "Paid to stand in long lines for products, tickets, or restaurant openings." },
+            { id: 3, name: "Bed Warmer", icon: "🧤🛏️", desc: "Hotel staff who wear thermal suits to pre-heat beds before guests arrive." },
+            { id: 4, name: "Dog Food Tester", icon: "🦴👅", desc: "Tastes and smells pet food to ensure quality and flavor standards." },
+            { id: 5, name: "Professional Bridesmaid", icon: "👗⛪", desc: "Hired to assist brides with logistics and emotional support during weddings." },
+            { id: 6, name: "Crisp Inspector", icon: "🥔🔍", desc: "Spotting and removing burnt or misshapen potato crisps on a factory line." },
+            { id: 7, name: "Live Mannequin", icon: "🎎🪟", desc: "Models who stand perfectly still in shop windows to display clothing." },
+            { id: 8, name: "Fake Wedding Guest", icon: "🤝🎭", desc: "Hired to fill empty seats at ceremonies to make the event look well-attended." },
+            { id: 9, name: "Train Catcher", icon: "🚃💪", desc: "Station staff who push passengers into crowded subway cars during rush hour." },
+            { id: 10, name: "Cemetery Patrol", icon: "🧥🛡️", desc: "Guards who watch over historical gravesites to prevent vandalism or theft." }
+        ];
+
+        let selectedProf = null;
+        let selectedDesc = null;
+        let matchesFound = 0;
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function initGame() {
+            matchesFound = 0;
+            selectedProf = null;
+            selectedDesc = null;
+            document.getElementById('message').style.display = 'none';
+            document.getElementById('restart-btn').style.display = 'none';
+            
+            const profCol = document.getElementById('professions-col');
+            const descCol = document.getElementById('descriptions-col');
+            profCol.innerHTML = '';
+            descCol.innerHTML = '';
+
+            const shuffledProfs = shuffle([...jobs]);
+            const shuffledDescs = shuffle([...jobs]);
+
+            shuffledProfs.forEach(job => {
+                const div = document.createElement('div');
+                div.className = 'item profession-item';
+                div.innerHTML = `<span class="icon">${job.icon}</span> ${job.name}`;
+                div.dataset.id = job.id;
+                div.onclick = () => handleSelect(div, 'prof');
+                profCol.appendChild(div);
+            });
+
+            shuffledDescs.forEach(job => {
+                const div = document.createElement('div');
+                div.className = 'item description-item';
+                div.innerText = job.desc;
+                div.dataset.id = job.id;
+                div.onclick = () => handleSelect(div, 'desc');
+                descCol.appendChild(div);
+            });
+        }
+
+        function handleSelect(el, type) {
+            if (el.classList.contains('matched')) return;
+
+            if (type === 'prof') {
+                if (selectedProf) selectedProf.classList.remove('selected');
+                selectedProf = el;
+                el.classList.add('selected');
+            } else {
+                if (selectedDesc) selectedDesc.classList.remove('selected');
+                selectedDesc = el;
+                el.classList.add('selected');
+            }
+
+            if (selectedProf && selectedDesc) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            if (selectedProf.dataset.id === selectedDesc.dataset.id) {
+                // Success
+                selectedProf.classList.add('matched');
+                selectedDesc.classList.add('matched');
+                matchesFound++;
+                if (matchesFound === jobs.length) {
+                    document.getElementById('message').style.display = 'block';
+                    document.getElementById('restart-btn').style.display = 'block';
+                }
+            } else {
+                // Failure - flash red briefly
+                const p = selectedProf;
+                const d = selectedDesc;
+                p.style.borderColor = 'var(--wrong)';
+                d.style.borderColor = 'var(--wrong)';
+                setTimeout(() => {
+                    p.style.borderColor = 'transparent';
+                    d.style.borderColor = 'transparent';
+                }, 500);
+            }
+            
+            selectedProf.classList.remove('selected');
+            selectedDesc.classList.remove('selected');
+            selectedProf = null;
+            selectedDesc = null;
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
